@@ -3,306 +3,164 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>스터디 역할 분담 슬롯 머신</title>
+    <title>스터디 룰렛 v16 (Firebase Sync)</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <style>
+        /* CSS는 이전과 동일하므로 생략합니다. */
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@500;700&display=swap');
-
-        :root {
-            --surface-color: transparent;
-            --primary-color: #c792ea; /* Pastel Violet */
-            --gradient-start: #b39ddb; /* Soft Lavender */
-            --gradient-end: #8e8dcc; /* Soft Indigo */
-            --text-color-dark: #2c2c2c;
-            --text-color-active: #ffffff;
-            --text-color-inactive: #d1c4e9;
-            --border-color: #5e5a81;
-            --input-bg-color: #2e2a4f;
-        }
-        
+        :root { --surface-color: transparent; --primary-color: #c792ea; --gradient-start: #b39ddb; --gradient-end: #8e8dcc; --text-color-dark: #2c2c2c; --text-color-active: #ffffff; --text-color-inactive: #d1c4e9; --border-color: #5e5a81; --input-bg-color: #2e2a4f; }
         html { font-size: 15px; }
-        body {
-            font-family: 'Noto+Sans+KR', sans-serif;
-            background-color: transparent;
-            color: var(--text-color-active);
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            margin: 0; padding: 0;
-        }
-
+        body { font-family: 'Noto+Sans+KR', sans-serif; background-color: transparent; color: var(--text-color-active); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; margin: 0; padding: 0; }
         .container { background-color: var(--surface-color); padding: 20px; text-align: center; }
-        h1 {
-            color: var(--primary-color);
-            margin-top: 0; margin-bottom: 30px;
-            font-weight: 700; font-size: 1.8em;
-        }
+        h1 { color: var(--primary-color); margin-top: 0; margin-bottom: 30px; font-weight: 700; font-size: 1.8em; }
         .slot-machine { display: flex; justify-content: space-around; margin-bottom: 25px; gap: 20px; }
         .role { width: 48%; }
         .role h2 { font-size: 1.1em; color: var(--text-color-inactive); margin-bottom: 10px; font-weight: 500; }
-
-        .slot-window {
-            background: linear-gradient(45deg, var(--gradient-start), var(--gradient-end));
-            border: none;
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
-            border-radius: 10px;
-            height: 60px;
-            font-size: 1.7em;
-            font-weight: 700;
-            overflow: hidden;
-            position: relative;
-        }
-        
+        .slot-window { background: linear-gradient(45deg, var(--gradient-start), var(--gradient-end)); border: none; box-shadow: inset 0 0 10px rgba(0,0,0,0.2); border-radius: 10px; height: 60px; font-size: 1.7em; font-weight: 700; overflow: hidden; position: relative; }
         .slot-reel { position: absolute; top: 0; left: 0; right: 0; }
-        .reel-item {
-            height: 60px;
-            display: flex; align-items: center; justify-content: center;
-            color: rgba(255,255,255,0.7);
-            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-            transform: scale(0.9); opacity: 0.7;
-            transition: all 0.5s;
-        }
+        .reel-item { height: 60px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.7); text-shadow: 0 1px 2px rgba(0,0,0,0.2); transform: scale(0.9); opacity: 0.7; transition: all 0.5s; }
         .reel-item.active { color: var(--text-color-active); transform: scale(1.0); opacity: 1; }
-
-        #spin-button {
-            background-color: var(--primary-color);
-            color: var(--text-color-active);
-            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-            border: none;
-            padding: 12px 25px;
-            font-size: 1.1em;
-            font-weight: 700;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            width: 100%;
-        }
+        #spin-button { background-color: var(--primary-color); color: var(--text-color-active); text-shadow: 0 1px 2px rgba(0,0,0,0.2); border: none; padding: 12px 25px; font-size: 1.1em; font-weight: 700; border-radius: 8px; cursor: pointer; transition: all 0.3s ease; width: 100%; }
         #spin-button:hover:not(:disabled) { background-color: #d09ff0; }
         #spin-button:disabled { background-color: var(--border-color); cursor: not-allowed; opacity: 0.7; }
-        
         .password-wrapper { margin-top: 15px; margin-bottom: 25px; }
-        #admin-password {
-            background-color: var(--input-bg-color);
-            border: 1px solid var(--border-color);
-            color: var(--text-color-active);
-            border-radius: 6px; padding: 8px 12px;
-            text-align: center; width: 150px;
-            font-size: 1em; font-family: inherit;
-        }
+        #admin-password { background-color: var(--input-bg-color); border: 1px solid var(--border-color); color: var(--text-color-active); border-radius: 6px; padding: 8px 12px; text-align: center; width: 150px; font-size: 1em; font-family: inherit; }
         #admin-password:focus { outline: none; border-color: var(--primary-color); }
         .shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
-        @keyframes shake {
-            10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); }
-            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); }
-        }
-
+        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
         .candidate-info-wrapper { display: flex; justify-content: space-around; gap: 15px; }
         .candidate-info { background-color: transparent; padding: 0; width: 48%; flex-direction: column; }
         .candidate-info h3 { margin: 0 0 8px 0; color: var(--text-color-inactive); font-size: 0.9em; font-weight: 500; text-align: left;}
-
-        .candidate-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            min-height: 35px;
-            margin:0; 
-            padding: 0;
-        }
-        
-        .candidate-tag {
-            padding: 6px 12px;
-            margin: 0;
-            border-radius: 15px;
-            font-size: 0.95em;
-            font-weight: 700;
-            color: var(--text-color-dark);
-            opacity: 1;
-            transform: scale(1);
-            flex-shrink: 0;
-            white-space: nowrap;
-            /* 자바스크립트가 직접 제어하므로 transition 속성 분리 */
-            transition: opacity 0.5s ease-out, transform 0.5s ease-out, margin-right 0.5s ease-in-out;
-        }
+        .candidate-list { display: flex; flex-wrap: wrap; gap: 8px; min-height: 35px; margin:0; padding: 0; }
+        .candidate-tag { padding: 6px 12px; margin: 0; border-radius: 15px; font-size: 0.95em; font-weight: 700; color: var(--text-color-dark); opacity: 1; transform: scale(1); flex-shrink: 0; white-space: nowrap; transition: opacity 0.4s ease-out, transform 0.4s ease-out, margin-right 0.3s ease-in 0.4s; }
+        .candidate-tag.fade-out { opacity: 0; transform: scale(0.8); margin-right: calc(-100% - 8px); }
     </style>
 </head>
 <body>
-
     <div class="container">
         <h1>이번 주 스터디 당번 뽑기 🎰</h1>
         <div class="slot-machine">
-            <div class="role">
-                <h2>👑 리더</h2>
-                <div class="slot-window"><div id="leader-reel" class="slot-reel"></div></div>
-            </div>
-            <div class="role">
-                <h2>✍️ 노트 테이커</h2>
-                <div class="slot-window"><div id="notetaker-reel" class="slot-reel"></div></div>
-            </div>
+            <div class="role"><h2>👑 리더</h2><div class="slot-window"><div id="leader-reel" class="slot-reel"></div></div></div>
+            <div class="role"><h2>✍️ 노트 테이커</h2><div class="slot-window"><div id="notetaker-reel" class="slot-reel"></div></div></div>
         </div>
         <button id="spin-button">SPIN!</button>
-        <div class="password-wrapper">
-            <input type="password" id="admin-password" placeholder="Admin Password">
-        </div>
+        <div class="password-wrapper"><input type="password" id="admin-password" placeholder="Admin Password"></div>
         <div class="candidate-info-wrapper">
-            <div class="candidate-info">
-                <h3>남은 리더 후보</h3>
-                <div id="leader-candidate-list" class="candidate-list"></div>
-            </div>
-            <div class="candidate-info">
-                <h3>남은 노트 테이커 후보</h3>
-                <div id="notetaker-candidate-list" class="candidate-list"></div>
-            </div>
+            <div class="candidate-info"><h3>남은 리더 후보</h3><div id="leader-candidate-list" class="candidate-list"></div></div>
+            <div class="candidate-info"><h3>남은 노트 테이커 후보</h3><div id="notetaker-candidate-list" class="candidate-list"></div></div>
         </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // --- 1. Firebase 설정 ---
+            
+	// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyDLwzXcJw0dDuOR7F76MQvZQ9NoY2hH3bQ",
+  authDomain: "roulette-data-4f5bf.firebaseapp.com",
+  projectId: "roulette-data-4f5bf",
+  storageBucket: "roulette-data-4f5bf.firebasestorage.app",
+  messagingSenderId: "282079852816",
+  appId: "1:282079852816:web:c02c711169a47bf9230d95",
+  measurementId: "G-FJ93Z9BKJQ"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+
+            const firebaseConfig = {
+                apiKey: "YOUR_API_KEY",
+                authDomain: "YOUR_AUTH_DOMAIN",
+                projectId: "YOUR_PROJECT_ID",
+                storageBucket: "YOUR_STORAGE_BUCKET",
+                messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+                appId: "YOUR_APP_ID"
+            };
+
+            // --- 2. Firebase 초기화 ---
+            firebase.initializeApp(firebaseConfig);
+            const db = firebase.firestore();
+            const docRef = db.collection("rouletteState").doc("candidates");
+
             const ALL_LEADERS = ['김성원', '김제원', '박지원', '송지윤'];
             const ALL_NOTE_TAKERS = ['김성원', '김제원', '박지원', '송지윤'];
-            const STORAGE_KEY = 'studyRoleLists_v15_final';
             const ADMIN_PASSWORD = '0503';
-            const REEL_ITEM_HEIGHT = 60;
-            const REEL_REPEAT_COUNT = 5;
-            const PASTEL_COLORS = ['#ffadad', '#ffd6a5', '#fdffb6', '#caffbf', '#9bf6ff', '#a0c4ff', '#bdb2ff', '#ffc6ff'];
-
-            const UIElements = {
-                leaderReel: document.getElementById('leader-reel'),
-                notetakerReel: document.getElementById('notetaker-reel'),
-                spinButton: document.getElementById('spin-button'),
-                leaderCandidateDisplay: document.getElementById('leader-candidate-list'),
-                notetakerCandidateDisplay: document.getElementById('notetaker-candidate-list'),
-                passwordInput: document.getElementById('admin-password'),
+            // ... 나머지 상수는 이전과 동일 ...
+            const REEL_ITEM_HEIGHT = 60; const REEL_REPEAT_COUNT = 5; const PASTEL_COLORS = ['#ffadad', '#ffd6a5', '#fdffb6', '#caffbf', '#9bf6ff', '#a0c4ff', '#bdb2ff', '#ffc6ff'];
+            
+            const UIElements = { /* 이전과 동일 */ 
+                leaderReel: document.getElementById('leader-reel'), notetakerReel: document.getElementById('notetaker-reel'), spinButton: document.getElementById('spin-button'), leaderCandidateDisplay: document.getElementById('leader-candidate-list'), notetakerCandidateDisplay: document.getElementById('notetaker-candidate-list'), passwordInput: document.getElementById('admin-password'),
             };
 
             let state = { availableLeaders: [], availableNoteTakers: [] };
             
-            function displayCandidates(container, names) {
-                container.innerHTML = '';
-                const shuffledColors = [...PASTEL_COLORS].sort(() => 0.5 - Math.random());
-                names.forEach((name, index) => {
-                    const tag = document.createElement('span');
-                    tag.className = 'candidate-tag';
-                    tag.textContent = name;
-                    tag.dataset.name = name;
-                    tag.style.backgroundColor = shuffledColors[index % shuffledColors.length];
-                    container.appendChild(tag);
-                });
+            // --- 3. 데이터 처리 함수를 Firebase 용으로 수정 ---
+            async function saveState(newState) {
+                return docRef.set(newState);
             }
 
-            // --- 최종 수정된 애니메이션 함수 ---
-            function animateRemoval(container, name) {
-                return new Promise(resolve => {
-                    const tag = container.querySelector(`[data-name="${name}"]`);
-                    if (tag) {
-                        const tagWidth = tag.offsetWidth; // 태그의 실제 너비 측정
-                        
-                        // 직접 스타일을 변경하여 애니메이션 트리거
-                        tag.style.opacity = '0';
-                        tag.style.transform = 'scale(0.8)';
-                        tag.style.marginRight = `-${tagWidth + 8}px`; // (태그 너비 + gap) 만큼 음수 마진 적용
-                        
-                        // 애니메이션 시간(500ms) 후 DOM에서 제거
-                        setTimeout(() => {
-                            tag.remove();
-                            resolve();
-                        }, 500); 
+            function setupRealtimeListener() {
+                docRef.onSnapshot(async (doc) => {
+                    if (doc.exists) {
+                        const data = doc.data();
+                        state.availableLeaders = data.availableLeaders;
+                        state.availableNoteTakers = data.availableNoteTakers;
                     } else {
-                        resolve();
+                        // DB에 데이터가 없으면 초기 상태로 생성
+                        const initialState = {
+                            availableLeaders: [...ALL_LEADERS],
+                            availableNoteTakers: [...ALL_NOTE_TAKERS]
+                        };
+                        await saveState(initialState);
+                        state = initialState;
                     }
+                    // UI 업데이트
+                    displayCandidates(UIElements.leaderCandidateDisplay, state.availableLeaders);
+                    displayCandidates(UIElements.notetakerCandidateDisplay, state.availableNoteTakers);
+                    setupInitialReels();
                 });
             }
-            
+
+            // ... displayCandidates, animateRemoval, setupReel 등 나머지 함수는 이전과 거의 동일 ...
+            function displayCandidates(container, names) { /* 이전과 동일 */ container.innerHTML = ''; const shuffledColors = [...PASTEL_COLORS].sort(() => 0.5 - Math.random()); names.forEach((name, index) => { const tag = document.createElement('span'); tag.className = 'candidate-tag'; tag.textContent = name; tag.dataset.name = name; tag.style.backgroundColor = shuffledColors[index % shuffledColors.length]; container.appendChild(tag); }); }
+            function animateRemoval(container, name) { return new Promise(resolve => { const tag = container.querySelector(`[data-name="${name}"]`); if (tag) { tag.style.marginRight = `-${tag.offsetWidth + 8}px`; tag.style.opacity = '0'; tag.style.transform = 'scale(0.8)'; setTimeout(() => { tag.remove(); resolve(); }, 500); } else { resolve(); } }); }
             const shuffle = (array) => array.sort(() => Math.random() - 0.5);
-            
-            function loadState() {
-                const stored = localStorage.getItem(STORAGE_KEY);
-                if (stored) {
-                    const parsed = JSON.parse(stored);
-                    state.availableLeaders = parsed.leaders || [...ALL_LEADERS];
-                    state.availableNoteTakers = parsed.noteTakers || [...ALL_NOTE_TAKERS];
-                } else { resetState(); }
-                saveState();
-                displayCandidates(UIElements.leaderCandidateDisplay, state.availableLeaders);
-                displayCandidates(UIElements.notetakerCandidateDisplay, state.availableNoteTakers);
-                setupInitialReels();
-            }
-
-            function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
-            function resetState() {
-                state.availableLeaders = [...ALL_LEADERS];
-                state.availableNoteTakers = [...ALL_NOTE_TAKERS];
-            }
-            
-            function setupReel(reelElement, candidates) {
-                reelElement.innerHTML = '';
-                if(candidates.length === 0) return [];
-                const shuffled = shuffle([...candidates]);
-                const extendedReel = Array(REEL_REPEAT_COUNT).fill(shuffled).flat();
-                extendedReel.forEach(name => {
-                    const item = document.createElement('div');
-                    item.className = 'reel-item';
-                    item.textContent = name;
-                    reelElement.appendChild(item);
-                });
-                return extendedReel;
-            }
-            
-            function setupInitialReels() {
-                const leaderReelItems = setupReel(UIElements.leaderReel, state.availableLeaders);
-                if (leaderReelItems.length > 0) UIElements.leaderReel.children[0].classList.add('active');
-                const notetakerReelItems = setupReel(UIElements.notetakerReel, state.availableNoteTakers);
-                if (notetakerReelItems.length > 0) UIElements.notetakerReel.children[0].classList.add('active');
-            }
-
-            function runSpin(reelElement, fullReel, winner) {
-                return new Promise(resolve => {
-                    const winnerBaseIndex = fullReel.lastIndexOf(winner);
-                    const targetTop = -winnerBaseIndex * REEL_ITEM_HEIGHT;
-                    const spinDuration = 3000 + Math.random() * 1000;
-                    Array.from(reelElement.children).forEach((child, index) => child.classList.toggle('active', index === winnerBaseIndex));
-                    reelElement.style.transition = `top ${spinDuration}ms cubic-bezier(0.25, 0.1, 0.25, 1)`;
-                    reelElement.style.top = `${targetTop}px`;
-                    reelElement.addEventListener('transitionend', () => resolve(), { once: true });
-                });
-            }
-
-            function checkPassword() {
-                if (UIElements.passwordInput.value !== ADMIN_PASSWORD) {
-                    UIElements.passwordInput.classList.add('shake');
-                    setTimeout(() => UIElements.passwordInput.classList.remove('shake'), 500);
-                    return false;
-                }
-                return true;
-            }
+            function setupReel(reelElement, candidates) { reelElement.innerHTML = ''; if(candidates.length === 0) return []; const shuffled = shuffle([...candidates]); const extendedReel = Array(REEL_REPEAT_COUNT).fill(shuffled).flat(); extendedReel.forEach(name => { const item = document.createElement('div'); item.className = 'reel-item'; item.textContent = name; reelElement.appendChild(item); }); return extendedReel; }
+            function setupInitialReels() { const leaderReelItems = setupReel(UIElements.leaderReel, state.availableLeaders); if (leaderReelItems.length > 0) UIElements.leaderReel.children[0].classList.add('active'); const notetakerReelItems = setupReel(UIElements.notetakerReel, state.availableNoteTakers); if (notetakerReelItems.length > 0) UIElements.notetakerReel.children[0].classList.add('active'); }
+            function runSpin(reelElement, fullReel, winner) { return new Promise(resolve => { const winnerBaseIndex = fullReel.lastIndexOf(winner); const targetTop = -winnerBaseIndex * REEL_ITEM_HEIGHT; const spinDuration = 3000 + Math.random() * 1000; Array.from(reelElement.children).forEach((child, index) => child.classList.toggle('active', index === winnerBaseIndex)); reelElement.style.transition = `top ${spinDuration}ms cubic-bezier(0.25, 0.1, 0.25, 1)`; reelElement.style.top = `${targetTop}px`; reelElement.addEventListener('transitionend', () => resolve(), { once: true }); }); }
+            function checkPassword() { if (UIElements.passwordInput.value !== ADMIN_PASSWORD) { UIElements.passwordInput.classList.add('shake'); setTimeout(() => UIElements.passwordInput.classList.remove('shake'), 500); return false; } return true; }
 
             async function selectRoles() {
                 if (!checkPassword()) return;
-
                 UIElements.spinButton.disabled = true;
 
-                if (state.availableLeaders.length === 0) {
-                    state.availableLeaders = [...ALL_LEADERS];
-                    displayCandidates(UIElements.leaderCandidateDisplay, state.availableLeaders);
-                }
-                let tempNoteTakerCandidates = [...state.availableNoteTakers];
-                if (tempNoteTakerCandidates.length === 0) {
-                    tempNoteTakerCandidates = [...ALL_NOTE_TAKERS];
-                    displayCandidates(UIElements.notetakerCandidateDisplay, tempNoteTakerCandidates);
-                }
+                let currentLeaders = [...state.availableLeaders];
+                let currentNoteTakers = [...state.availableNoteTakers];
 
-                const finalLeader = state.availableLeaders[Math.floor(Math.random() * state.availableLeaders.length)];
-                let validNoteTakerCandidates = tempNoteTakerCandidates.filter(name => name !== finalLeader);
+                if (currentLeaders.length === 0) currentLeaders = [...ALL_LEADERS];
+                if (currentNoteTakers.length === 0) currentNoteTakers = [...ALL_NOTE_TAKERS];
+
+                const finalLeader = currentLeaders[Math.floor(Math.random() * currentLeaders.length)];
+                let validNoteTakerCandidates = currentNoteTakers.filter(name => name !== finalLeader);
                 if (validNoteTakerCandidates.length === 0) {
-                    tempNoteTakerCandidates = [...ALL_NOTE_TAKERS];
-                    validNoteTakerCandidates = tempNoteTakerCandidates.filter(name => name !== finalLeader);
-                    displayCandidates(UIElements.notetakerCandidateDisplay, tempNoteTakerCandidates);
+                    validNoteTakerCandidates = [...ALL_NOTE_TAKERS].filter(name => name !== finalLeader);
                 }
                 const finalNoteTaker = validNoteTakerCandidates[Math.floor(Math.random() * validNoteTakerCandidates.length)];
 
-                const leaderReelItems = setupReel(UIElements.leaderReel, state.availableLeaders);
-                const notetakerReelItems = setupReel(UIElements.notetakerReel, tempNoteTakerCandidates);
-                UIElements.leaderReel.style.transition = 'none';
-                UIElements.notetakerReel.style.transition = 'none';
-                UIElements.leaderReel.style.top = `-${Math.floor(Math.random() * state.availableLeaders.length) * REEL_ITEM_HEIGHT}px`;
-                UIElements.notetakerReel.style.top = `-${Math.floor(Math.random() * tempNoteTakerCandidates.length) * REEL_ITEM_HEIGHT}px`;
+                const leaderReelItems = setupReel(UIElements.leaderReel, currentLeaders);
+                const notetakerReelItems = setupReel(UIElements.notetakerReel, validNoteTakerCandidates);
+                // ... 릴 초기화 ...
+                UIElements.leaderReel.style.transition = 'none'; UIElements.notetakerReel.style.transition = 'none'; UIElements.leaderReel.style.top = `-${Math.floor(Math.random() * currentLeaders.length) * REEL_ITEM_HEIGHT}px`; UIElements.notetakerReel.style.top = `-${Math.floor(Math.random() * validNoteTakerCandidates.length) * REEL_ITEM_HEIGHT}px`;
                 await new Promise(requestAnimationFrame);
 
                 await Promise.all([
@@ -310,23 +168,21 @@
                     runSpin(UIElements.notetakerReel, notetakerReelItems, finalNoteTaker),
                 ]);
 
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                // 애니메이션이 아닌, 최종 데이터 상태를 바로 Firebase에 저장
+                const newState = {
+                    availableLeaders: currentLeaders.filter(name => name !== finalLeader),
+                    availableNoteTakers: currentNoteTakers.filter(name => name !== finalNoteTaker),
+                };
                 
-                await Promise.all([
-                    animateRemoval(UIElements.leaderCandidateDisplay, finalLeader),
-                    animateRemoval(UIElements.notetakerCandidateDisplay, finalNoteTaker)
-                ]);
+                await saveState(newState); // DB에 저장하면 onSnapshot 리스너가 알아서 UI를 업데이트합니다.
 
-                state.availableLeaders = state.availableLeaders.filter(name => name !== finalLeader);
-                state.availableNoteTakers = tempNoteTakerCandidates.filter(name => name !== finalNoteTaker);
-                saveState();
-                
                 UIElements.spinButton.disabled = false;
             }
             
             UIElements.spinButton.addEventListener('click', selectRoles);
             
-            loadState();
+            // 앱 시작 시 localStorage 대신 실시간 리스너 설정
+            setupRealtimeListener();
         });
     </script>
 </body>
