@@ -3,141 +3,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>스터디 역할 분담 슬롯 머신 v4 (Admin Lock)</title>
+    <title>스터디 역할 분담 슬롯 머신</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@500;700&display=swap');
 
         :root {
-            --bg-color: #1a1a2d;
-            --surface-color: #2a2a4a;
-            --primary-color: #8292ff;
-            --primary-dark-color: #6a7bff;
+            --surface-color: transparent;
+            --primary-color: #c792ea; /* Pastel Violet */
+            --gradient-start: #b39ddb; /* Soft Lavender */
+            --gradient-end: #8e8dcc; /* Soft Indigo */
+            --text-color-dark: #2c2c2c;
             --text-color-active: #ffffff;
-            --text-color-inactive: #a0a0c0;
-            --border-color: #4a4a6a;
+            --text-color-inactive: #d1c4e9;
+            --border-color: #5e5a81;
+            --input-bg-color: #2e2a4f;
         }
-
+        
+        html { font-size: 15px; }
         body {
-            font-family: 'Noto Sans KR', sans-serif;
-            background-color: var(--bg-color);
+            font-family: 'Noto+Sans+KR', sans-serif;
+            background-color: transparent;
             color: var(--text-color-active);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 20px 0;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
+            margin: 0; padding: 0;
         }
 
-        .container {
-            background-color: var(--surface-color);
-            padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-            text-align: center;
-            width: 90%;
-            max-width: 600px;
-        }
-
+        .container { background-color: var(--surface-color); padding: 20px; text-align: center; }
         h1 {
             color: var(--primary-color);
-            margin-bottom: 30px;
-            font-weight: 700;
+            margin-top: 0; margin-bottom: 30px;
+            font-weight: 700; font-size: 1.8em;
         }
-
-        .slot-machine {
-            display: flex;
-            justify-content: space-around;
-            margin-bottom: 40px;
-            gap: 20px;
-        }
-
-        .role {
-            width: 48%;
-        }
-
-        .role h2 {
-            font-size: 1.2em;
-            color: var(--text-color-inactive);
-            margin-bottom: 10px;
-            font-weight: 500;
-        }
+        .slot-machine { display: flex; justify-content: space-around; margin-bottom: 25px; gap: 20px; }
+        .role { width: 48%; }
+        .role h2 { font-size: 1.1em; color: var(--text-color-inactive); margin-bottom: 10px; font-weight: 500; }
 
         .slot-window {
-            background-color: #151525;
-            border: 2px solid var(--border-color);
+            background: linear-gradient(45deg, var(--gradient-start), var(--gradient-end));
+            border: none;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
             border-radius: 10px;
-            height: 70px;
-            font-size: 1.8em;
+            height: 60px;
+            font-size: 1.7em;
             font-weight: 700;
             overflow: hidden;
             position: relative;
         }
         
-        .slot-window::before, .slot-window::after {
-            content: '';
-            position: absolute;
-            left: 0;
-            right: 0;
-            height: 20px;
-            background: linear-gradient(to bottom, #151525, transparent);
-            z-index: 2;
-        }
-        .slot-window::after {
-            bottom: 0;
-            top: auto;
-            background: linear-gradient(to top, #151525, transparent);
-        }
-
-        .slot-reel {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-        }
-
+        .slot-reel { position: absolute; top: 0; left: 0; right: 0; }
         .reel-item {
-            height: 70px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-color-inactive);
-            transform: scale(0.9);
-            opacity: 0.7;
-            transition: color 0.5s, transform 0.5s, opacity 0.5s;
+            height: 60px;
+            display: flex; align-items: center; justify-content: center;
+            color: rgba(255,255,255,0.7);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            transform: scale(0.9); opacity: 0.7;
+            transition: all 0.5s;
         }
-
-        .reel-item.active {
-            color: var(--text-color-active);
-            transform: scale(1.0);
-            opacity: 1;
-        }
+        .reel-item.active { color: var(--text-color-active); transform: scale(1.0); opacity: 1; }
 
         #spin-button {
             background-color: var(--primary-color);
-            color: var(--bg-color);
+            color: var(--text-color-active);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
             border: none;
-            padding: 15px 30px;
-            font-size: 1.2em;
+            padding: 12px 25px;
+            font-size: 1.1em;
             font-weight: 700;
             border-radius: 8px;
             cursor: pointer;
-            transition: background-color 0.3s ease, transform 0.1s ease;
+            transition: all 0.3s ease;
             width: 100%;
         }
+        #spin-button:hover:not(:disabled) { background-color: #d09ff0; }
+        #spin-button:disabled { background-color: var(--border-color); cursor: not-allowed; opacity: 0.7; }
+        
+        .password-wrapper { margin-top: 15px; margin-bottom: 25px; }
+        #admin-password {
+            background-color: var(--input-bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color-active);
+            border-radius: 6px; padding: 8px 12px;
+            text-align: center; width: 150px;
+            font-size: 1em; font-family: inherit;
+        }
+        #admin-password:focus { outline: none; border-color: var(--primary-color); }
+        .shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
 
-        #spin-button:hover:not(:disabled) { background-color: var(--primary-dark-color); }
-        #spin-button:disabled { background-color: var(--border-color); cursor: not-allowed; }
-        #spin-button:active:not(:disabled) { transform: scale(0.98); }
+        .candidate-info-wrapper { display: flex; justify-content: space-around; gap: 15px; }
+        .candidate-info { background-color: transparent; padding: 0; width: 48%; flex-direction: column; }
+        .candidate-info h3 { margin: 0 0 8px 0; color: var(--text-color-inactive); font-size: 0.9em; font-weight: 500; text-align: left;}
 
-        .candidate-info-wrapper { margin-top: 30px; display: flex; justify-content: space-around; gap: 15px; }
-        .candidate-info { background-color: var(--bg-color); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); width: 48%; flex-direction: column; }
-        .candidate-info h3 { margin: 0 0 10px 0; color: var(--text-color-inactive); font-size: 1em; font-weight: 500; }
-        .candidate-list { font-size: 1em; color: var(--text-color-active); min-height: 25px; word-break: keep-all; margin:0; }
-        #reset-button { background: none; border: 1px solid var(--text-color-inactive); color: var(--text-color-inactive); padding: 8px 15px; font-size: 0.9em; border-radius: 5px; cursor: pointer; margin-top: 25px; transition: background-color 0.3s, color 0.3s; width: auto; }
-        #reset-button:hover { background-color: var(--border-color); color: var(--text-color-active); }
+        .candidate-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            min-height: 35px;
+            margin:0; 
+            padding: 0;
+        }
+        
+        .candidate-tag {
+            padding: 6px 12px;
+            margin: 0;
+            border-radius: 15px;
+            font-size: 0.95em;
+            font-weight: 700;
+            color: var(--text-color-dark);
+            opacity: 1;
+            transform: scale(1);
+            flex-shrink: 0;
+            white-space: nowrap;
+            /* 자바스크립트가 직접 제어하므로 transition 속성 분리 */
+            transition: opacity 0.5s ease-out, transform 0.5s ease-out, margin-right 0.5s ease-in-out;
+        }
     </style>
 </head>
 <body>
@@ -155,45 +138,80 @@
             </div>
         </div>
         <button id="spin-button">SPIN!</button>
+        <div class="password-wrapper">
+            <input type="password" id="admin-password" placeholder="Admin Password">
+        </div>
         <div class="candidate-info-wrapper">
             <div class="candidate-info">
                 <h3>남은 리더 후보</h3>
-                <p id="leader-candidate-list" class="candidate-list"></p>
+                <div id="leader-candidate-list" class="candidate-list"></div>
             </div>
             <div class="candidate-info">
                 <h3>남은 노트 테이커 후보</h3>
-                <p id="notetaker-candidate-list" class="candidate-list"></p>
+                <div id="notetaker-candidate-list" class="candidate-list"></div>
             </div>
         </div>
-        <button id="reset-button">전체 명단 초기화</button>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // --- 설정 ---
             const ALL_LEADERS = ['김성원', '김제원', '박지원', '송지윤'];
             const ALL_NOTE_TAKERS = ['김성원', '김제원', '박지원', '송지윤'];
-            const STORAGE_KEY = 'studyRoleLists_v4';
+            const STORAGE_KEY = 'studyRoleLists_v15_final';
             const ADMIN_PASSWORD = '0503';
-            const REEL_ITEM_HEIGHT = 70;
+            const REEL_ITEM_HEIGHT = 60;
             const REEL_REPEAT_COUNT = 5;
+            const PASTEL_COLORS = ['#ffadad', '#ffd6a5', '#fdffb6', '#caffbf', '#9bf6ff', '#a0c4ff', '#bdb2ff', '#ffc6ff'];
 
-            // --- UI 요소 ---
-            const UIElements = { /* 이전과 동일 */ 
+            const UIElements = {
                 leaderReel: document.getElementById('leader-reel'),
                 notetakerReel: document.getElementById('notetaker-reel'),
                 spinButton: document.getElementById('spin-button'),
-                resetButton: document.getElementById('reset-button'),
                 leaderCandidateDisplay: document.getElementById('leader-candidate-list'),
                 notetakerCandidateDisplay: document.getElementById('notetaker-candidate-list'),
+                passwordInput: document.getElementById('admin-password'),
             };
 
-            // --- 상태 변수 ---
             let state = { availableLeaders: [], availableNoteTakers: [] };
-            let isSpunThisSession = false; // 새로 추가: 한 번 돌렸는지 확인하는 변수
+            
+            function displayCandidates(container, names) {
+                container.innerHTML = '';
+                const shuffledColors = [...PASTEL_COLORS].sort(() => 0.5 - Math.random());
+                names.forEach((name, index) => {
+                    const tag = document.createElement('span');
+                    tag.className = 'candidate-tag';
+                    tag.textContent = name;
+                    tag.dataset.name = name;
+                    tag.style.backgroundColor = shuffledColors[index % shuffledColors.length];
+                    container.appendChild(tag);
+                });
+            }
 
+            // --- 최종 수정된 애니메이션 함수 ---
+            function animateRemoval(container, name) {
+                return new Promise(resolve => {
+                    const tag = container.querySelector(`[data-name="${name}"]`);
+                    if (tag) {
+                        const tagWidth = tag.offsetWidth; // 태그의 실제 너비 측정
+                        
+                        // 직접 스타일을 변경하여 애니메이션 트리거
+                        tag.style.opacity = '0';
+                        tag.style.transform = 'scale(0.8)';
+                        tag.style.marginRight = `-${tagWidth + 8}px`; // (태그 너비 + gap) 만큼 음수 마진 적용
+                        
+                        // 애니메이션 시간(500ms) 후 DOM에서 제거
+                        setTimeout(() => {
+                            tag.remove();
+                            resolve();
+                        }, 500); 
+                    } else {
+                        resolve();
+                    }
+                });
+            }
+            
             const shuffle = (array) => array.sort(() => Math.random() - 0.5);
-
+            
             function loadState() {
                 const stored = localStorage.getItem(STORAGE_KEY);
                 if (stored) {
@@ -202,7 +220,8 @@
                     state.availableNoteTakers = parsed.noteTakers || [...ALL_NOTE_TAKERS];
                 } else { resetState(); }
                 saveState();
-                updateCandidateDisplay();
+                displayCandidates(UIElements.leaderCandidateDisplay, state.availableLeaders);
+                displayCandidates(UIElements.notetakerCandidateDisplay, state.availableNoteTakers);
                 setupInitialReels();
             }
 
@@ -210,11 +229,6 @@
             function resetState() {
                 state.availableLeaders = [...ALL_LEADERS];
                 state.availableNoteTakers = [...ALL_NOTE_TAKERS];
-            }
-
-            function updateCandidateDisplay() {
-                UIElements.leaderCandidateDisplay.textContent = state.availableLeaders.length > 0 ? state.availableLeaders.join(', ') : '후보 없음';
-                UIElements.notetakerCandidateDisplay.textContent = state.availableNoteTakers.length > 0 ? state.availableNoteTakers.join(', ') : '후보 없음';
             }
             
             function setupReel(reelElement, candidates) {
@@ -243,52 +257,46 @@
                     const winnerBaseIndex = fullReel.lastIndexOf(winner);
                     const targetTop = -winnerBaseIndex * REEL_ITEM_HEIGHT;
                     const spinDuration = 3000 + Math.random() * 1000;
-                    Array.from(reelElement.children).forEach((child, index) => {
-                        child.classList.toggle('active', index === winnerBaseIndex);
-                    });
+                    Array.from(reelElement.children).forEach((child, index) => child.classList.toggle('active', index === winnerBaseIndex));
                     reelElement.style.transition = `top ${spinDuration}ms cubic-bezier(0.25, 0.1, 0.25, 1)`;
                     reelElement.style.top = `${targetTop}px`;
                     reelElement.addEventListener('transitionend', () => resolve(), { once: true });
                 });
             }
 
-            async function selectRoles() {
-                // --- ADMIN 잠금 기능 ---
-                if (isSpunThisSession) {
-                    const password = prompt("한 번만 뽑을 수 있습니다. 다시 뽑으려면 관리자 암호를 입력하세요:");
-                    if (password === ADMIN_PASSWORD) {
-                        alert("인증되었습니다. SPIN 버튼을 다시 눌러주세요.");
-                        isSpunThisSession = false; // 잠금 해제
-                    } else if (password !== null) { // 사용자가 '취소'를 누르지 않았을 때만
-                        alert("암호가 틀렸습니다.");
-                    }
-                    return; // 함수 종료
+            function checkPassword() {
+                if (UIElements.passwordInput.value !== ADMIN_PASSWORD) {
+                    UIElements.passwordInput.classList.add('shake');
+                    setTimeout(() => UIElements.passwordInput.classList.remove('shake'), 500);
+                    return false;
                 }
+                return true;
+            }
+
+            async function selectRoles() {
+                if (!checkPassword()) return;
 
                 UIElements.spinButton.disabled = true;
 
-                // 1. 후보자 명단 체크 및 초기화
                 if (state.availableLeaders.length === 0) {
-                    alert('리더 후보가 모두 소진되어 리더 명단을 초기화합니다.');
                     state.availableLeaders = [...ALL_LEADERS];
+                    displayCandidates(UIElements.leaderCandidateDisplay, state.availableLeaders);
                 }
                 let tempNoteTakerCandidates = [...state.availableNoteTakers];
                 if (tempNoteTakerCandidates.length === 0) {
-                    alert('노트 테이커 후보가 모두 소진되어 노트 테이커 명단을 초기화합니다.');
                     tempNoteTakerCandidates = [...ALL_NOTE_TAKERS];
+                    displayCandidates(UIElements.notetakerCandidateDisplay, tempNoteTakerCandidates);
                 }
 
-                // 2. 최종 당첨자 결정 (중복 방지)
                 const finalLeader = state.availableLeaders[Math.floor(Math.random() * state.availableLeaders.length)];
                 let validNoteTakerCandidates = tempNoteTakerCandidates.filter(name => name !== finalLeader);
                 if (validNoteTakerCandidates.length === 0) {
-                    alert(`유일한 노트테이커 후보(${tempNoteTakerCandidates[0]})가 리더로 선정되어, 노트테이커 명단을 초기화하고 다시 뽑습니다.`);
                     tempNoteTakerCandidates = [...ALL_NOTE_TAKERS];
                     validNoteTakerCandidates = tempNoteTakerCandidates.filter(name => name !== finalLeader);
+                    displayCandidates(UIElements.notetakerCandidateDisplay, tempNoteTakerCandidates);
                 }
                 const finalNoteTaker = validNoteTakerCandidates[Math.floor(Math.random() * validNoteTakerCandidates.length)];
 
-                // 3. 릴 구성 및 애니메이션
                 const leaderReelItems = setupReel(UIElements.leaderReel, state.availableLeaders);
                 const notetakerReelItems = setupReel(UIElements.notetakerReel, tempNoteTakerCandidates);
                 UIElements.leaderReel.style.transition = 'none';
@@ -296,38 +304,27 @@
                 UIElements.leaderReel.style.top = `-${Math.floor(Math.random() * state.availableLeaders.length) * REEL_ITEM_HEIGHT}px`;
                 UIElements.notetakerReel.style.top = `-${Math.floor(Math.random() * tempNoteTakerCandidates.length) * REEL_ITEM_HEIGHT}px`;
                 await new Promise(requestAnimationFrame);
+
                 await Promise.all([
                     runSpin(UIElements.leaderReel, leaderReelItems, finalLeader),
                     runSpin(UIElements.notetakerReel, notetakerReelItems, finalNoteTaker),
                 ]);
 
-                // --- 긴장감 주는 딜레이 ---
-                await new Promise(resolve => setTimeout(resolve, 1000)); // 1초 대기
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                await Promise.all([
+                    animateRemoval(UIElements.leaderCandidateDisplay, finalLeader),
+                    animateRemoval(UIElements.notetakerCandidateDisplay, finalNoteTaker)
+                ]);
 
-                // 4. 상태 업데이트
                 state.availableLeaders = state.availableLeaders.filter(name => name !== finalLeader);
                 state.availableNoteTakers = tempNoteTakerCandidates.filter(name => name !== finalNoteTaker);
                 saveState();
-                updateCandidateDisplay();
-
-                // 5. 다음 스핀 잠금 처리
-                isSpunThisSession = true;
+                
                 UIElements.spinButton.disabled = false;
-            }
-
-            function handleReset() {
-                if (confirm('정말로 모든 명단을 초기화하시겠습니까?')) {
-                    resetState();
-                    saveState();
-                    updateCandidateDisplay();
-                    setupInitialReels();
-                    isSpunThisSession = false; // 초기화 시 잠금도 해제
-                    alert('모든 명단이 성공적으로 초기화되었습니다.');
-                }
             }
             
             UIElements.spinButton.addEventListener('click', selectRoles);
-            UIElements.resetButton.addEventListener('click', handleReset);
             
             loadState();
         });
