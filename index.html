@@ -1,464 +1,305 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>스터디 역할 분담 슬롯 머신</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>스터디 역할 분담 슬롯 머신</title>
 
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@500;700&display=swap');
-        :root {
-            --surface-color: transparent;
-            --primary-color: #c792ea;
-            --gradient-start: #b39ddb;
-            --gradient-end: #8e8dcc;
-            --text-color-dark: #2c2c2c;
-            --text-color-active: #ffffff;
-            --text-color-inactive: #d1c4e9;
-            --border-color: #5e5a81;
-            --input-bg-color: #2e2a4f;
-        }
-        html { font-size: 15px; }
-        body {
-            font-family: 'Noto Sans KR', sans-serif;
-            background-color: transparent;
-            color: var(--text-color-active);
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            margin: 0; padding: 0;
-        }
-        .container { background-color: var(--surface-color); padding: 20px; text-align: center; }
-        h1 {
-            color: var(--primary-color);
-            margin-top: 0; margin-bottom: 30px;
-            font-weight: 700; font-size: 1.8em;
-        }
-        .slot-machine { display: flex; justify-content: space-around; margin-bottom: 25px; gap: 20px; }
-        .role { width: 48%; }
-        .role h2 { font-size: 1.1em; color: var(--text-color-inactive); margin-bottom: 10px; font-weight: 500; }
-        .slot-window {
-            background: linear-gradient(45deg, var(--gradient-start), var(--gradient-end));
-            border-radius: 10px;
-            height: 60px;
-            font-size: 1.7em;
-            font-weight: 700;
-            overflow: hidden;
-            position: relative;
-        }
-        .slot-reel { position: absolute; top: 0; left: 0; right: 0; transition: none; }
-        .reel-item {
-            height: 60px;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .reel-item.active { color: var(--text-color-active); }
-        #spin-button {
-            background-color: var(--primary-color);
-            color: var(--text-color-active);
-            border: none; padding: 12px 25px;
-            font-size: 1.1em; font-weight: 700;
-            border-radius: 8px; cursor: pointer;
-            transition: all 0.3s ease; width: 100%;
-        }
-        #spin-button:hover:not(:disabled) { background-color: #d09ff0; }
-        #spin-button:disabled { background-color: var(--border-color); cursor: not-allowed; opacity: 0.7; }
-        .password-wrapper { margin-top: 15px; margin-bottom: 25px; }
-        #admin-password {
-            background-color: var(--input-bg-color);
-            border: 1px solid var(--border-color);
-            color: var(--text-color-active);
-            border-radius: 6px; padding: 8px 12px;
-            text-align: center; width: 150px;
-            font-size: 1em; font-family: inherit;
-        }
-        #admin-password:focus { outline: none; border-color: var(--primary-color); }
-        .shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
-        @keyframes shake {
-            10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); }
-            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); }
-        }
-        .candidate-info-wrapper { display: flex; justify-content: space-around; gap: 15px; }
-        .candidate-info { background-color: transparent; padding: 0; width: 48%; flex-direction: column; }
-        .candidate-info h3 { margin: 0 0 8px 0; color: var(--text-color-inactive); font-size: 0.9em; font-weight: 500; text-align: left;}
-        .candidate-list { display: flex; flex-wrap: wrap; gap: 8px; min-height: 35px; margin:0; padding: 0; }
-        .candidate-tag {
-            padding: 6px 12px; margin: 0;
-            border-radius: 15px; font-size: 0.95em;
-            font-weight: 700; color: var(--text-color-dark);
-            transition: opacity 0.5s ease-out, transform 0.5s ease-out, margin-right 0.5s ease-in-out;
-        }
-    </style>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+import { getDatabase, ref, get, set, update, push, query, limitToLast } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+
+// Firebase config
+const firebaseConfig = {
+    apiKey: "AIzaSyDLwzXcJw0dDuOR7F76MQvZQ9NoY2hH3bQ",
+    authDomain: "roulette-data-4f5bf.firebaseapp.com",
+    projectId: "roulette-data-4f5bf",
+    storageBucket: "roulette-data-4f5bf.app",
+    messagingSenderId: "282079852816",
+    appId: "1:282079852816:web:c02c711169a47bf9230d95",
+    databaseURL: "https://roulette-data-4f5bf-default-rtdb.firebaseio.com/"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+signInAnonymously(auth).catch(console.error);
+
+const db = getDatabase(app);
+window.firebaseDB = { db, ref, get, set, update, push, query, limitToLast };
+</script>
+
+<style>
+/* 기존 스타일 그대로 */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@500;700&display=swap');
+:root {
+    --surface-color: transparent;
+    --primary-color: #c792ea;
+    --gradient-start: #b39ddb;
+    --gradient-end: #8e8dcc;
+    --text-color-dark: #2c2c2c;
+    --text-color-active: #ffffff;
+    --text-color-inactive: #d1c4e9;
+    --border-color: #5e5a81;
+    --input-bg-color: #2e2a4f;
+}
+html { font-size: 15px; }
+body { font-family: 'Noto Sans KR', sans-serif; background-color: transparent; color: var(--text-color-active); margin:0;padding:0;}
+.container { background-color: var(--surface-color); padding: 20px; text-align: center; }
+h1 { color: var(--primary-color); margin-top:0;margin-bottom:30px;font-weight:700;font-size:1.8em; }
+.slot-machine { display: flex; justify-content: space-around; margin-bottom:25px; gap:20px; }
+.role { width:48%; }
+.role h2 { font-size:1.1em; color: var(--text-color-inactive); margin-bottom:10px; font-weight:500; }
+.slot-window { background: linear-gradient(45deg, var(--gradient-start), var(--gradient-end)); border-radius:10px; height:60px; font-size:1.7em; font-weight:700; overflow:hidden; position:relative; }
+.slot-reel { position:absolute; top:0; left:0; right:0; transition:none; }
+.reel-item { height:60px; display:flex; align-items:center; justify-content:center; }
+.reel-item.active { color: var(--text-color-active); }
+#spin-button { background-color: var(--primary-color); color: var(--text-color-active); border:none; padding:12px 25px; font-size:1.1em; font-weight:700; border-radius:8px; cursor:pointer; transition:all 0.3s ease; width:100%; }
+#spin-button:hover:not(:disabled) { background-color: #d09ff0; }
+#spin-button:disabled { background-color: var(--border-color); cursor:not-allowed; opacity:0.7; }
+.password-wrapper { margin-top:15px;margin-bottom:25px; }
+#admin-password { background-color: var(--input-bg-color); border:1px solid var(--border-color); color: var(--text-color-active); border-radius:6px; padding:8px 12px; text-align:center; width:150px; font-size:1em; font-family:inherit; }
+#admin-password:focus { outline:none; border-color: var(--primary-color); }
+.shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+@keyframes shake { 10%,90%{transform:translate3d(-1px,0,0);} 20%,80%{transform:translate3d(2px,0,0);} 30%,50%,70%{transform:translate3d(-4px,0,0);} 40%,60%{transform:translate3d(4px,0,0);} }
+.candidate-info-wrapper { display:flex; justify-content:space-around; gap:15px; }
+.candidate-info { background-color:transparent; padding:0; width:48%; flex-direction:column; }
+.candidate-info h3 { margin:0 0 8px 0; color: var(--text-color-inactive); font-size:0.9em; font-weight:500; text-align:left;}
+.candidate-list { display:flex; flex-wrap:wrap; gap:8px; min-height:35px; margin:0; padding:0; }
+.candidate-tag { padding:6px 12px; margin:0; border-radius:15px; font-size:0.95em; font-weight:700; color: var(--text-color-dark); transition: opacity 0.5s ease-out, transform 0.5s ease-out, margin-right 0.5s ease-in-out; }
+</style>
 </head>
+
 <body>
-    <div class="container">
-        <h1>이번 주 스터디 당번 뽑기 🎰</h1>
-        <div class="slot-machine">
-            <div class="role">
-                <h2>👑 리더</h2>
-                <div class="slot-window"><div id="leader-reel" class="slot-reel"></div></div>
-            </div>
-            <div class="role">
-                <h2>✍️ 노트 테이커</h2>
-                <div class="slot-window"><div id="notetaker-reel" class="slot-reel"></div></div>
-            </div>
-        </div>
-        <button id="spin-button">SPIN!</button>
-        <div class="password-wrapper">
-            <input type="password" id="admin-password" placeholder="Admin Password">
-        </div>
-        <div class="candidate-info-wrapper">
-            <div class="candidate-info">
-                <h3>남은 리더 후보</h3>
-                <div id="leader-candidate-list" class="candidate-list"></div>
-            </div>
-            <div class="candidate-info">
-                <h3>남은 노트 테이커 후보</h3>
-                <div id="notetaker-candidate-list" class="candidate-list"></div>
-            </div>
-        </div>
+<div class="container">
+<h1>이번 주 스터디 당번 뽑기 🎰</h1>
+<div class="slot-machine">
+    <div class="role">
+        <h2>👑 리더</h2>
+        <div class="slot-window"><div id="leader-reel" class="slot-reel"></div></div>
     </div>
+    <div class="role">
+        <h2>✍️ 노트 테이커</h2>
+        <div class="slot-window"><div id="notetaker-reel" class="slot-reel"></div></div>
+    </div>
+</div>
+<button id="spin-button">SPIN!</button>
+<div class="password-wrapper">
+    <input type="password" id="admin-password" placeholder="Admin Password">
+</div>
+<div class="candidate-info-wrapper">
+    <div class="candidate-info">
+        <h3>남은 리더 후보</h3>
+        <div id="leader-candidate-list" class="candidate-list"></div>
+    </div>
+    <div class="candidate-info">
+        <h3>남은 노트 테이커 후보</h3>
+        <div id="notetaker-candidate-list" class="candidate-list"></div>
+    </div>
+</div>
 
-    <!-- 단일 모듈 스크립트: Firebase 초기화 → 익명 인증 → 인증 완료 시 DB 로드 -->
-    <script type="module">
-        // Firebase v9+ (모듈 방식)
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
-        import { getDatabase, ref, get, set, update, push, query, limitToLast, orderByChild } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+<script type="module">
+document.addEventListener('DOMContentLoaded', () => {
+    const ALL_LEADERS = ['김성원','김명석','박지원'];
+    const ALL_NOTE_TAKERS = ['김성원','김명석','박지원'];
+    const ADMIN_PASSWORD = '0503';
+    const REEL_ITEM_HEIGHT = 60;
+    const REEL_REPEAT_COUNT = 5;
+    const PASTEL_COLORS = ['#ffadad','#ffd6a5','#fdffb6','#caffbf','#9bf6ff','#a0c4ff','#bdb2ff','#ffc6ff'];
 
-        // --- 요청하신 Firebase 설정(config) 객체 ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyDLwzXcJw0dDuOR7F76MQvZQ9NoY2hH3bQ",
-            authDomain: "roulette-data-4f5bf.firebaseapp.com",
-            projectId: "roulette-data-4f5bf",
-            storageBucket: "roulette-data-4f5bf.firebasestorage.app",
-            messagingSenderId: "282079852816",
-            appId: "1:282079852816:web:c02c711169a47bf9230d95",
-            measurementId: "G-FJ93Z9BKJQ",
-            databaseURL: "https://roulette-data-4f5bf-default-rtdb.firebaseio.com/"
-        };
-        // -----------------------------------------
+    const UIElements = {
+        leaderReel: document.getElementById('leader-reel'),
+        notetakerReel: document.getElementById('notetaker-reel'),
+        spinButton: document.getElementById('spin-button'),
+        leaderCandidateDisplay: document.getElementById('leader-candidate-list'),
+        notetakerCandidateDisplay: document.getElementById('notetaker-candidate-list'),
+        passwordInput: document.getElementById('admin-password'),
+    };
 
-        // UI 상수 및 요소 (원래 코드 유지)
-        const ALL_LEADERS = ['김성원', '김명석', '박지원'];
-        const ALL_NOTE_TAKERS = ['김성원', '김명석', '박지원'];
-        const ADMIN_PASSWORD = '0503';
-        const REEL_ITEM_HEIGHT = 60;
-        const REEL_REPEAT_COUNT = 5;
-        const PASTEL_COLORS = ['#ffadad', '#ffd6a5', '#fdffb6', '#caffbf', '#9bf6ff', '#a0c4ff', '#bdb2ff', '#ffc6ff'];
+    let state = {
+        availableLeaders: [],
+        availableNoteTakers: [],
+        lastLeader: null,
+        lastNoteTaker: null
+    };
 
-        const UIElements = {
-            leaderReel: document.getElementById('leader-reel'),
-            notetakerReel: document.getElementById('notetaker-reel'),
-            spinButton: document.getElementById('spin-button'),
-            leaderCandidateDisplay: document.getElementById('leader-candidate-list'),
-            notetakerCandidateDisplay: document.getElementById('notetaker-candidate-list'),
-            passwordInput: document.getElementById('admin-password'),
-        };
+    async function loadDataFromFirebase() {
+        const { db, ref, get, set, query, limitToLast } = window.firebaseDB;
+        const dbRef = ref(db, 'studyRoles');
 
-        // 로컬 상태 객체
-        let state = {
-            availableLeaders: [],
-            availableNoteTakers: [],
-            lastLeader: null,
-            lastNoteTaker: null
-        };
-
-        // Firebase 앱 초기화 (하지만 DB 사용은 인증 후에 설정)
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-
-        // 익명 인증 시도 (오류는 콘솔에만 찍음)
-        signInAnonymously(auth).catch((err) => {
-            console.error("익명 인증 실패:", err);
-        });
-
-        // 인증 상태 변화를 감지하여 인증이 완료되었을 때 DB를 안전하게 초기화하고 데이터 로드
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                console.log("인증 완료 (uid):", user.uid);
-
-                // 이제 DB를 안전하게 초기화 (auth 완료 후에만)
-                const db = getDatabase(app);
-                // 전역 접근용으로 필요한 메서드만 노출
-                window.firebaseDB = { db, ref, get, set, update, push, query, limitToLast, orderByChild };
-
-                // DOMContentLoaded가 이미 발생했는지 확인하고 아니면 이벤트로 대기
-                if (document.readyState === 'loading') {
-                    document.addEventListener('DOMContentLoaded', () => {
-                        loadDataFromFirebase(); // 실제 정의는 아래에서
-                    });
-                } else {
-                    // DOM이 준비되어 있으면 바로 호출
-                    loadDataFromFirebase();
-                }
-            } else {
-                console.log("사용자 인증 없음");
-            }
-        });
-
-        // --- 이하 원래 코드의 DOMContentLoaded 내부 로직을 거의 그대로 유지 ---
-        document.addEventListener('DOMContentLoaded', () => {
-            // displayCandidates, animateRemoval, shuffle, setupReel, setupInitialReels 등
-            function displayCandidates(container, names) {
-                container.innerHTML = '';
-                const shuffledColors = [...PASTEL_COLORS].sort(() => 0.5 - Math.random());
-                names.forEach((name, index) => {
-                    const tag = document.createElement('span');
-                    tag.className = 'candidate-tag';
-                    tag.textContent = name;
-                    tag.dataset.name = name;
-                    tag.style.backgroundColor = shuffledColors[index % shuffledColors.length];
-                    container.appendChild(tag);
-                });
+        try {
+            const snapshot = await get(dbRef);
+            console.log("Firebase snapshot:", snapshot.val());
+            let data = snapshot.val();
+            
+            if (!data) {
+                data = {
+                    availableLeaders: [...ALL_LEADERS],
+                    availableNoteTakers: [...ALL_NOTE_TAKERS],
+                    results: {}
+                };
+                await set(dbRef, data);
             }
 
-            function animateRemoval(container, name) {
-                return new Promise(resolve => {
-                    const tag = container.querySelector(`[data-name="${name}"]`);
-                    if (tag) {
-                        const tagWidth = tag.offsetWidth;
-                        tag.style.opacity = '0';
-                        tag.style.transform = 'scale(0.8)';
-                        tag.style.marginRight = `-${tagWidth + 8}px`;
-                        setTimeout(() => { tag.remove(); resolve(); }, 500);
-                    } else { resolve(); }
-                });
-            }
+            state.availableLeaders = data.availableLeaders || [...ALL_LEADERS];
+            state.availableNoteTakers = data.availableNoteTakers || [...ALL_NOTE_TAKERS];
 
-            const shuffle = (array) => array.sort(() => Math.random() - 0.5);
-
-            function setupReel(reelElement, candidates, initialWinner = null) {
-                reelElement.innerHTML = '';
-                if (candidates.length === 0 && !initialWinner) return [];
-
-                let displayCandidates = [...candidates];
-                if (initialWinner && !displayCandidates.includes(initialWinner)) {
-                    displayCandidates.push(initialWinner);
-                }
-                if(displayCandidates.length === 0) return [];
-
-                const shuffled = shuffle(displayCandidates);
-                const extendedReel = Array(REEL_REPEAT_COUNT).fill(shuffled).flat();
-
-                extendedReel.forEach(name => {
-                    const item = document.createElement('div');
-                    item.className = 'reel-item';
-                    item.textContent = name;
-                    reelElement.appendChild(item);
-                });
-                return extendedReel;
-            }
-
-            function setupInitialReels() {
-                // 리더 릴 설정
-                const leaderReelItems = setupReel(UIElements.leaderReel, state.availableLeaders, state.lastLeader);
-                if (leaderReelItems.length > 0) {
-                    const winner = state.lastLeader || leaderReelItems[0];
-                    const winnerIndex = leaderReelItems.indexOf(winner);
-                    UIElements.leaderReel.style.top = `-${winnerIndex * REEL_ITEM_HEIGHT}px`;
-                    UIElements.leaderReel.children[winnerIndex]?.classList.add('active');
-                }
-
-                // 노트테이커 릴 설정
-                const notetakerReelItems = setupReel(UIElements.notetakerReel, state.availableNoteTakers, state.lastNoteTaker);
-                if (notetakerReelItems.length > 0) {
-                    const winner = state.lastNoteTaker || notetakerReelItems[0];
-                    const winnerIndex = notetakerReelItems.indexOf(winner);
-                    UIElements.notetakerReel.style.top = `-${winnerIndex * REEL_ITEM_HEIGHT}px`;
-                    UIElements.notetakerReel.children[winnerIndex]?.classList.add('active');
-                }
-            }
-
-            function runSpin(reelElement, fullReel, winner) {
-                return new Promise(resolve => {
-                    const winnerBaseIndex = fullReel.lastIndexOf(winner);
-                    const targetTop = -winnerBaseIndex * REEL_ITEM_HEIGHT;
-                    const spinDuration = 3000 + Math.random() * 1000;
-
-                    Array.from(reelElement.children).forEach(child => child.classList.remove('active'));
-                    reelElement.children[winnerBaseIndex]?.classList.add('active');
-
-                    reelElement.style.transition = `top ${spinDuration}ms cubic-bezier(0.25, 0.1, 0.25, 1)`;
-                    reelElement.style.top = `${targetTop}px`;
-                    reelElement.addEventListener('transitionend', () => resolve(), { once: true });
-                });
-            }
-
-            function checkPassword() {
-                if (UIElements.passwordInput.value !== ADMIN_PASSWORD) {
-                    UIElements.passwordInput.classList.add('shake');
-                    setTimeout(() => UIElements.passwordInput.classList.remove('shake'), 500);
-                    return false;
-                }
-                return true;
-            }
-
-            async function selectRoles() {
-                if (!checkPassword()) return;
-
-                UIElements.spinButton.disabled = true;
-
-                if (state.availableLeaders.length === 0) {
-                    state.availableLeaders = [...ALL_LEADERS];
-                    displayCandidates(UIElements.leaderCandidateDisplay, state.availableLeaders);
-                }
-                let tempNoteTakerCandidates = [...state.availableNoteTakers];
-                if (tempNoteTakerCandidates.length === 0) {
-                    tempNoteTakerCandidates = [...ALL_NOTE_TAKERS];
-                    displayCandidates(UIElements.notetakerCandidateDisplay, tempNoteTakerCandidates);
-                }
-
-                const finalLeader = state.availableLeaders[Math.floor(Math.random() * state.availableLeaders.length)];
-                let validNoteTakerCandidates = tempNoteTakerCandidates.filter(name => name !== finalLeader);
-
-                if (validNoteTakerCandidates.length === 0) {
-                    tempNoteTakerCandidates = [...ALL_NOTE_TAKERS];
-                    validNoteTakerCandidates = tempNoteTakerCandidates.filter(name => name !== finalLeader);
-                    displayCandidates(UIElements.notetakerCandidateDisplay, tempNoteTakerCandidates);
-                }
-
-                const finalNoteTaker = validNoteTakerCandidates[Math.floor(Math.random() * validNoteTakerCandidates.length)];
-
-                const leaderReelItems = setupReel(UIElements.leaderReel, state.availableLeaders);
-                const notetakerReelItems = setupReel(UIElements.notetakerReel, tempNoteTakerCandidates);
-
-                await new Promise(requestAnimationFrame);
-
-                await Promise.all([
-                    runSpin(UIElements.leaderReel, leaderReelItems, finalLeader),
-                    runSpin(UIElements.notetakerReel, notetakerReelItems, finalNoteTaker),
-                ]);
-
-                await new Promise(resolve => setTimeout(resolve, 1000));
-
-                await Promise.all([
-                    animateRemoval(UIElements.leaderCandidateDisplay, finalLeader),
-                    animateRemoval(UIElements.notetakerCandidateDisplay, finalNoteTaker)
-                ]);
-
-                const updatedLeaders = state.availableLeaders.filter(name => name !== finalLeader);
-                const updatedNoteTakers = tempNoteTakerCandidates.filter(name => name !== finalNoteTaker);
-                state.availableLeaders = updatedLeaders;
-                state.availableNoteTakers = updatedNoteTakers;
-
-                await updateFirebaseData(updatedLeaders, updatedNoteTakers, finalLeader, finalNoteTaker);
-
-                UIElements.spinButton.disabled = false;
-            }
-
-            UIElements.spinButton.addEventListener('click', selectRoles);
-
-            // 주의: loadDataFromFirebase은 auth 완료 후에 호출되므로 여기서는 자동 호출하지 않는다.
-        });
-
-        // --- Firebase 연동 함수 (DB 접근은 window.firebaseDB를 통해 이루어짐) ---
-        async function loadDataFromFirebase() {
-            // window.firebaseDB는 auth 완료 시 설정됨
-            const { db, ref, get, set, query, limitToLast } = window.firebaseDB;
-            const dbRef = ref(db, 'studyRoles');
-
-            try {
-                const snapshot = await get(dbRef);
-                if (snapshot.exists()) {
-                    const data = snapshot.val();
-                    state.availableLeaders = data.availableLeaders || [...ALL_LEADERS];
-                    state.availableNoteTakers = data.availableNoteTakers || [...ALL_NOTE_TAKERS];
-
-                    const resultsRef = ref(db, 'studyRoles/results');
-                    const lastResultQuery = query(resultsRef, limitToLast(1));
-                    const resultSnapshot = await get(lastResultQuery);
-
-                    if (resultSnapshot.exists()) {
-                        const resultsData = resultSnapshot.val();
-                        const lastResultKey = Object.keys(resultsData)[0];
-                        const lastResult = resultsData[lastResultKey];
-                        state.lastLeader = lastResult.leader;
-                        state.lastNoteTaker = lastResult.noteTaker;
-                    }
-
-                } else {
-                    // 초기 상태로 설정하고 DB에 저장
-                    state.availableLeaders = [...ALL_LEADERS];
-                    state.availableNoteTakers = [...ALL_NOTE_TAKERS];
-                    await set(dbRef, {
-                        availableLeaders: state.availableLeaders,
-                        availableNoteTakers: state.availableNoteTakers
-                    });
-                }
-            } catch (error) {
-                console.error("Firebase 데이터 로딩 에러:", error);
-                state.availableLeaders = [...ALL_LEADERS];
-                state.availableNoteTakers = [...ALL_NOTE_TAKERS];
-            }
-
-            // UI 업데이트 (DOM이 준비된 상태에서 실행됨)
-            const leaderDisplay = document.getElementById('leader-candidate-list');
-            const noteDisplay = document.getElementById('notetaker-candidate-list');
-
-            // 재사용: 간단한 로컬 복사 (원래 displayCandidates는 DOMContentLoaded 내부에 정의)
-            function displayCandidatesLocal(container, names) {
-                container.innerHTML = '';
-                const shuffledColors = [...PASTEL_COLORS].sort(() => 0.5 - Math.random());
-                names.forEach((name, index) => {
-                    const tag = document.createElement('span');
-                    tag.className = 'candidate-tag';
-                    tag.textContent = name;
-                    tag.dataset.name = name;
-                    tag.style.backgroundColor = shuffledColors[index % shuffledColors.length];
-                    container.appendChild(tag);
-                });
-            }
-
-            displayCandidatesLocal(leaderDisplay, state.availableLeaders);
-            displayCandidatesLocal(noteDisplay, state.availableNoteTakers);
-            // setupInitialReels는 DOMContentLoaded 내에서 선언되므로 안전하게 호출하려면 dispatchEvent 사용
-            // 간단하게 직접 설정: (중복을 피하려면 더 정교한 방식 권장)
-            // 여기서는 페이지의 reel에 아이템을 세팅하기 위해 간단히 호출 가능하도록 이벤트 트리거
-            const evt = new Event('firebase-data-loaded');
-            document.dispatchEvent(evt);
-
-            // 혹은 간단히 재사용 가능한 setupInitialReels를 전역에 노출하도록 코드를 재구성할 수 있지만,
-            // 위 방식이면 DOMContentLoaded 블록에서 해당 이벤트를 받아 처리하게 만들 수도 있다.
-        }
-
-        // updateFirebaseData는 selectRoles에서 바로 호출되므로 전역으로 정의
-        async function updateFirebaseData(newLeaderList, newNoteTakerList, winnerLeader, winnerNoteTaker) {
-            const { db, ref, update, push } = window.firebaseDB;
-            const dbRef = ref(db, 'studyRoles');
+            // 마지막 당첨자
             const resultsRef = ref(db, 'studyRoles/results');
-
-            const newResult = {
-                leader: winnerLeader,
-                noteTaker: winnerNoteTaker,
-                timestamp: new Date().toISOString()
-            };
-
-            try {
-                await update(dbRef, {
-                    availableLeaders: newLeaderList,
-                    availableNoteTakers: newNoteTakerList
-                });
-                await push(resultsRef, newResult);
-            } catch (error) {
-                console.error("Firebase 데이터 업데이트 에러:", error);
+            const lastResultQuery = query(resultsRef, limitToLast(1));
+            const resultSnapshot = await get(lastResultQuery);
+            if (resultSnapshot.exists()) {
+                const resultsData = resultSnapshot.val();
+                const lastKey = Object.keys(resultsData)[0];
+                const lastResult = resultsData[lastKey];
+                state.lastLeader = lastResult.leader;
+                state.lastNoteTaker = lastResult.noteTaker;
             }
+
+        } catch(err) {
+            console.error("Firebase 로드 에러:", err);
+            state.availableLeaders = [...ALL_LEADERS];
+            state.availableNoteTakers = [...ALL_NOTE_TAKERS];
         }
 
-        // DOMContentLoaded 내부에서 setupInitialReels를 정의했으므로,
-        // firebase에서 데이터 로드 완료 시점에 해당 정의를 호출하려면 이벤트를 사용하자.
-        // 아래는 간단한 이벤트 리스너: firebase-data-loaded 발생하면 setupInitialReels를 호출한다.
-        document.addEventListener('firebase-data-loaded', () => {
-            // 정의가 DOMContentLoaded 블록 내부에 있으므로, 접근을 시도해본다.
-            try {
-                // setupInitialReels가 함수로 존재하면 호출
-                if (typeof setupInitialReels === 'function') {
-                    setupInitialReels();
-                }
-            } catch (e) {
-                // 만약 내부 스코프라 접근 불가하면, 재구성 필요. (대부분의 환경에서 작동함)
-                console.warn('setupInitialReels 호출 실패:', e);
-            }
-        });
+        // UI 표시
+        displayCandidates(UIElements.leaderCandidateDisplay, state.availableLeaders);
+        displayCandidates(UIElements.notetakerCandidateDisplay, state.availableNoteTakers);
+        setupInitialReels();
+    }
 
-    </script>
+    async function updateFirebaseData(newLeaderList, newNoteTakerList, winnerLeader, winnerNoteTaker) {
+        const { db, ref, update, push } = window.firebaseDB;
+        const dbRef = ref(db, 'studyRoles');
+        const resultsRef = ref(db, 'studyRoles/results');
+
+        const newResult = {
+            leader: winnerLeader,
+            noteTaker: winnerNoteTaker,
+            timestamp: new Date().toISOString()
+        };
+
+        try {
+            await update(dbRef, {
+                availableLeaders: newLeaderList,
+                availableNoteTakers: newNoteTakerList
+            });
+            await push(resultsRef, newResult);
+        } catch(err) { console.error("Firebase 업데이트 에러:", err); }
+    }
+
+    function displayCandidates(container, names) {
+        container.innerHTML = '';
+        const shuffledColors = [...PASTEL_COLORS].sort(() => 0.5 - Math.random());
+        names.forEach((name, index) => {
+            const tag = document.createElement('span');
+            tag.className = 'candidate-tag';
+            tag.textContent = name;
+            tag.dataset.name = name;
+            tag.style.backgroundColor = shuffledColors[index % shuffledColors.length];
+            container.appendChild(tag);
+        });
+    }
+
+    function setupReel(reelElement, candidates, initialWinner=null) {
+        reelElement.innerHTML = '';
+        if(candidates.length===0 && !initialWinner) return [];
+        let displayCands = [...candidates];
+        if(initialWinner && !displayCands.includes(initialWinner)) displayCands.push(initialWinner);
+        if(displayCands.length===0) return [];
+        const shuffled = displayCands.sort(() => Math.random()-0.5);
+        const extended = Array(REEL_REPEAT_COUNT).fill(shuffled).flat();
+        extended.forEach(name=>{
+            const div = document.createElement('div');
+            div.className='reel-item';
+            div.textContent=name;
+            reelElement.appendChild(div);
+        });
+        return extended;
+    }
+
+    function setupInitialReels() {
+        const leaderReelItems = setupReel(UIElements.leaderReel, state.availableLeaders, state.lastLeader);
+        if(leaderReelItems.length>0){
+            const winner = state.lastLeader || leaderReelItems[0];
+            const winnerIndex = leaderReelItems.indexOf(winner);
+            UIElements.leaderReel.style.top = `-${winnerIndex*REEL_ITEM_HEIGHT}px`;
+            UIElements.leaderReel.children[winnerIndex]?.classList.add('active');
+        }
+        const notetakerReelItems = setupReel(UIElements.notetakerReel, state.availableNoteTakers, state.lastNoteTaker);
+        if(notetakerReelItems.length>0){
+            const winner = state.lastNoteTaker || notetakerReelItems[0];
+            const winnerIndex = notetakerReelItems.indexOf(winner);
+            UIElements.notetakerReel.style.top = `-${winnerIndex*REEL_ITEM_HEIGHT}px`;
+            UIElements.notetakerReel.children[winnerIndex]?.classList.add('active');
+        }
+    }
+
+    function runSpin(reelElement, fullReel, winner) {
+        return new Promise(resolve=>{
+            const winnerBaseIndex = fullReel.lastIndexOf(winner);
+            const targetTop = -winnerBaseIndex*REEL_ITEM_HEIGHT;
+            const spinDuration = 3000 + Math.random()*1000;
+            Array.from(reelElement.children).forEach(c=>c.classList.remove('active'));
+            reelElement.children[winnerBaseIndex]?.classList.add('active');
+            reelElement.style.transition=`top ${spinDuration}ms cubic-bezier(0.25,0.1,0.25,1)`;
+            reelElement.style.top=`${targetTop}px`;
+            reelElement.addEventListener('transitionend', ()=>resolve(), {once:true});
+        });
+    }
+
+    function checkPassword() {
+        if(UIElements.passwordInput.value!==ADMIN_PASSWORD){
+            UIElements.passwordInput.classList.add('shake');
+            setTimeout(()=>UIElements.passwordInput.classList.remove('shake'),500);
+            return false;
+        }
+        return true;
+    }
+
+    async function selectRoles(){
+        if(!checkPassword()) return;
+        UIElements.spinButton.disabled=true;
+
+        if(state.availableLeaders.length===0){
+            state.availableLeaders=[...ALL_LEADERS];
+            displayCandidates(UIElements.leaderCandidateDisplay,state.availableLeaders);
+        }
+        let tempNoteTakerCandidates = [...state.availableNoteTakers];
+        if(tempNoteTakerCandidates.length===0){
+            tempNoteTakerCandidates=[...ALL_NOTE_TAKERS];
+            displayCandidates(UIElements.notetakerCandidateDisplay,tempNoteTakerCandidates);
+        }
+
+        const finalLeader = state.availableLeaders[Math.floor(Math.random()*state.availableLeaders.length)];
+        let validNoteTakerCandidates = tempNoteTakerCandidates.filter(n=>n!==finalLeader);
+        if(validNoteTakerCandidates.length===0){
+            tempNoteTakerCandidates=[...ALL_NOTE_TAKERS];
+            validNoteTakerCandidates = tempNoteTakerCandidates.filter(n=>n!==finalLeader);
+            displayCandidates(UIElements.notetakerCandidateDisplay,tempNoteTakerCandidates);
+        }
+        const finalNoteTaker = validNoteTakerCandidates[Math.floor(Math.random()*validNoteTakerCandidates.length)];
+
+        const leaderReelItems = setupReel(UIElements.leaderReel, state.availableLeaders);
+        const notetakerReelItems = setupReel(UIElements.notetakerReel, tempNoteTakerCandidates);
+        await new Promise(requestAnimationFrame);
+        await Promise.all([
+            runSpin(UIElements.leaderReel, leaderReelItems, finalLeader),
+            runSpin(UIElements.notetakerReel, notetakerReelItems, finalNoteTaker),
+        ]);
+        await new Promise(r=>setTimeout(r,1000));
+        state.availableLeaders = state.availableLeaders.filter(n=>n!==finalLeader);
+        state.availableNoteTakers = tempNoteTakerCandidates.filter(n=>n!==finalNoteTaker);
+        displayCandidates(UIElements.leaderCandidateDisplay,state.availableLeaders);
+        displayCandidates(UIElements.notetakerCandidateDisplay,state.availableNoteTakers);
+        await updateFirebaseData(state.availableLeaders,state.availableNoteTakers,finalLeader,finalNoteTaker);
+        UIElements.spinButton.disabled=false;
+    }
+
+    UIElements.spinButton.addEventListener('click', selectRoles);
+    loadDataFromFirebase();
+});
+</script>
+
 </body>
 </html>
