@@ -5,33 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>스터디 역할 분담 슬롯 머신</title>
 
-    <script type="module">
-        // Firebase v9+ (모듈 방식)
-        // query, limitToLast, orderByChild를 import에 추가
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
-        import { getDatabase, ref, get, set, update, push, query, limitToLast, orderByChild } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
-        
-        // --- 요청하신 Firebase 설정(config) 객체 ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyDLwzXcJw0dDuOR7F76MQvZQ9NoY2hH3bQ",
-            authDomain: "roulette-data-4f5bf.firebaseapp.com",
-            projectId: "roulette-data-4f5bf",
-            storageBucket: "roulette-data-4f5bf.firebasestorage.app",
-            messagingSenderId: "282079852816",
-            appId: "1:282079852816:web:c02c711169a47bf9230d95",
-            measurementId: "G-FJ93Z9BKJQ",
-            databaseURL: "https://roulette-data-4f5bf-default-rtdb.firebaseio.com/"
-        };
-        // -----------------------------------------
-
-        // Firebase 앱 초기화 및 데이터베이스 참조 전역화
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-
-        // 스크립트의 다른 부분에서 사용할 수 있도록 window 객체에 할당
-        window.firebaseDB = { db, ref, get, set, update, push, query, limitToLast, orderByChild };
-    </script>
-
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@500;700&display=swap');
         :root {
@@ -144,103 +117,87 @@
         </div>
     </div>
 
+    <!-- 단일 모듈 스크립트: Firebase 초기화 → 익명 인증 → 인증 완료 시 DB 로드 -->
     <script type="module">
-        document.addEventListener('DOMContentLoaded', () => {
-            const ALL_LEADERS = ['김성원', '김명석', '박지원'];
-            const ALL_NOTE_TAKERS = ['김성원', '김명석', '박지원'];
-            const ADMIN_PASSWORD = '0503';
-            const REEL_ITEM_HEIGHT = 60;
-            const REEL_REPEAT_COUNT = 5;
-            const PASTEL_COLORS = ['#ffadad', '#ffd6a5', '#fdffb6', '#caffbf', '#9bf6ff', '#a0c4ff', '#bdb2ff', '#ffc6ff'];
+        // Firebase v9+ (모듈 방식)
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { getDatabase, ref, get, set, update, push, query, limitToLast, orderByChild } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 
-            const UIElements = {
-                leaderReel: document.getElementById('leader-reel'),
-                notetakerReel: document.getElementById('notetaker-reel'),
-                spinButton: document.getElementById('spin-button'),
-                leaderCandidateDisplay: document.getElementById('leader-candidate-list'),
-                notetakerCandidateDisplay: document.getElementById('notetaker-candidate-list'),
-                passwordInput: document.getElementById('admin-password'),
-            };
+        // --- 요청하신 Firebase 설정(config) 객체 ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDLwzXcJw0dDuOR7F76MQvZQ9NoY2hH3bQ",
+            authDomain: "roulette-data-4f5bf.firebaseapp.com",
+            projectId: "roulette-data-4f5bf",
+            storageBucket: "roulette-data-4f5bf.firebasestorage.app",
+            messagingSenderId: "282079852816",
+            appId: "1:282079852816:web:c02c711169a47bf9230d95",
+            measurementId: "G-FJ93Z9BKJQ",
+            databaseURL: "https://roulette-data-4f5bf-default-rtdb.firebaseio.com/"
+        };
+        // -----------------------------------------
 
-            // 로컬 상태 객체에 마지막 당첨자 정보 추가
-            let state = {
-                availableLeaders: [],
-                availableNoteTakers: [],
-                lastLeader: null,
-                lastNoteTaker: null
-            };
+        // UI 상수 및 요소 (원래 코드 유지)
+        const ALL_LEADERS = ['김성원', '김명석', '박지원'];
+        const ALL_NOTE_TAKERS = ['김성원', '김명석', '박지원'];
+        const ADMIN_PASSWORD = '0503';
+        const REEL_ITEM_HEIGHT = 60;
+        const REEL_REPEAT_COUNT = 5;
+        const PASTEL_COLORS = ['#ffadad', '#ffd6a5', '#fdffb6', '#caffbf', '#9bf6ff', '#a0c4ff', '#bdb2ff', '#ffc6ff'];
 
-            // --- Firebase 연동 함수 ---
-            async function loadDataFromFirebase() {
-                const { db, ref, get, set, query, limitToLast } = window.firebaseDB;
-                const dbRef = ref(db, 'studyRoles');
-                
-                try {
-                    // 1. 후보자 명단 가져오기
-                    const snapshot = await get(dbRef);
-                    if (snapshot.exists()) {
-                        const data = snapshot.val();
-                        state.availableLeaders = data.availableLeaders || [...ALL_LEADERS];
-                        state.availableNoteTakers = data.availableNoteTakers || [...ALL_NOTE_TAKERS];
+        const UIElements = {
+            leaderReel: document.getElementById('leader-reel'),
+            notetakerReel: document.getElementById('notetaker-reel'),
+            spinButton: document.getElementById('spin-button'),
+            leaderCandidateDisplay: document.getElementById('leader-candidate-list'),
+            notetakerCandidateDisplay: document.getElementById('notetaker-candidate-list'),
+            passwordInput: document.getElementById('admin-password'),
+        };
 
-                        // 2. ★★★ 마지막 당첨자 정보 가져오기 (수정된 부분) ★★★
-                        const resultsRef = ref(db, 'studyRoles/results');
-                        const lastResultQuery = query(resultsRef, limitToLast(1));
-                        const resultSnapshot = await get(lastResultQuery);
+        // 로컬 상태 객체
+        let state = {
+            availableLeaders: [],
+            availableNoteTakers: [],
+            lastLeader: null,
+            lastNoteTaker: null
+        };
 
-                        if (resultSnapshot.exists()) {
-                            const resultsData = resultSnapshot.val();
-                            const lastResultKey = Object.keys(resultsData)[0];
-                            const lastResult = resultsData[lastResultKey];
-                            state.lastLeader = lastResult.leader;
-                            state.lastNoteTaker = lastResult.noteTaker;
-                        }
+        // Firebase 앱 초기화 (하지만 DB 사용은 인증 후에 설정)
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
 
-                    } else {
-                        // 데이터가 없으면 초기 상태로 설정하고 DB에 저장
-                        state.availableLeaders = [...ALL_LEADERS];
-                        state.availableNoteTakers = [...ALL_NOTE_TAKERS];
-                        await set(dbRef, {
-                            availableLeaders: state.availableLeaders,
-                            availableNoteTakers: state.availableNoteTakers
-                        });
-                    }
-                } catch (error) {
-                    console.error("Firebase 데이터 로딩 에러:", error);
-                    state.availableLeaders = [...ALL_LEADERS];
-                    state.availableNoteTakers = [...ALL_NOTE_TAKERS];
-                }
+        // 익명 인증 시도 (오류는 콘솔에만 찍음)
+        signInAnonymously(auth).catch((err) => {
+            console.error("익명 인증 실패:", err);
+        });
 
-                // UI 업데이트
-                displayCandidates(UIElements.leaderCandidateDisplay, state.availableLeaders);
-                displayCandidates(UIElements.notetakerCandidateDisplay, state.availableNoteTakers);
-                setupInitialReels();
-            }
+        // 인증 상태 변화를 감지하여 인증이 완료되었을 때 DB를 안전하게 초기화하고 데이터 로드
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                console.log("인증 완료 (uid):", user.uid);
 
-            async function updateFirebaseData(newLeaderList, newNoteTakerList, winnerLeader, winnerNoteTaker) {
-                const { db, ref, update, push } = window.firebaseDB;
-                const dbRef = ref(db, 'studyRoles');
-                const resultsRef = ref(db, 'studyRoles/results');
-                
-                const newResult = {
-                    leader: winnerLeader,
-                    noteTaker: winnerNoteTaker,
-                    timestamp: new Date().toISOString()
-                };
+                // 이제 DB를 안전하게 초기화 (auth 완료 후에만)
+                const db = getDatabase(app);
+                // 전역 접근용으로 필요한 메서드만 노출
+                window.firebaseDB = { db, ref, get, set, update, push, query, limitToLast, orderByChild };
 
-                try {
-                    await update(dbRef, {
-                        availableLeaders: newLeaderList,
-                        availableNoteTakers: newNoteTakerList
+                // DOMContentLoaded가 이미 발생했는지 확인하고 아니면 이벤트로 대기
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', () => {
+                        loadDataFromFirebase(); // 실제 정의는 아래에서
                     });
-                    await push(resultsRef, newResult);
-                } catch (error) {
-                    console.error("Firebase 데이터 업데이트 에러:", error);
+                } else {
+                    // DOM이 준비되어 있으면 바로 호출
+                    loadDataFromFirebase();
                 }
+            } else {
+                console.log("사용자 인증 없음");
             }
+        });
 
-
-            // --- UI 및 로직 함수들 ---
+        // --- 이하 원래 코드의 DOMContentLoaded 내부 로직을 거의 그대로 유지 ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // displayCandidates, animateRemoval, shuffle, setupReel, setupInitialReels 등
             function displayCandidates(container, names) {
                 container.innerHTML = '';
                 const shuffledColors = [...PASTEL_COLORS].sort(() => 0.5 - Math.random());
@@ -272,17 +229,16 @@
             function setupReel(reelElement, candidates, initialWinner = null) {
                 reelElement.innerHTML = '';
                 if (candidates.length === 0 && !initialWinner) return [];
-                
-                // 후보자 명단에 마지막 당첨자가 포함되어 있는지 확인 후, 없으면 추가
+
                 let displayCandidates = [...candidates];
                 if (initialWinner && !displayCandidates.includes(initialWinner)) {
                     displayCandidates.push(initialWinner);
                 }
                 if(displayCandidates.length === 0) return [];
-                
+
                 const shuffled = shuffle(displayCandidates);
                 const extendedReel = Array(REEL_REPEAT_COUNT).fill(shuffled).flat();
-                
+
                 extendedReel.forEach(name => {
                     const item = document.createElement('div');
                     item.className = 'reel-item';
@@ -291,8 +247,7 @@
                 });
                 return extendedReel;
             }
-            
-            // ★★★ 룰렛 초기 화면 설정 함수 (수정됨) ★★★
+
             function setupInitialReels() {
                 // 리더 릴 설정
                 const leaderReelItems = setupReel(UIElements.leaderReel, state.availableLeaders, state.lastLeader);
@@ -313,17 +268,15 @@
                 }
             }
 
-
             function runSpin(reelElement, fullReel, winner) {
                 return new Promise(resolve => {
-                    // 당첨자가 릴의 마지막 부분에 위치하도록 인덱스 계산
                     const winnerBaseIndex = fullReel.lastIndexOf(winner);
                     const targetTop = -winnerBaseIndex * REEL_ITEM_HEIGHT;
                     const spinDuration = 3000 + Math.random() * 1000;
-                    
+
                     Array.from(reelElement.children).forEach(child => child.classList.remove('active'));
                     reelElement.children[winnerBaseIndex]?.classList.add('active');
-                    
+
                     reelElement.style.transition = `top ${spinDuration}ms cubic-bezier(0.25, 0.1, 0.25, 1)`;
                     reelElement.style.top = `${targetTop}px`;
                     reelElement.addEventListener('transitionend', () => resolve(), { once: true });
@@ -338,7 +291,7 @@
                 }
                 return true;
             }
-            
+
             async function selectRoles() {
                 if (!checkPassword()) return;
 
@@ -356,7 +309,7 @@
 
                 const finalLeader = state.availableLeaders[Math.floor(Math.random() * state.availableLeaders.length)];
                 let validNoteTakerCandidates = tempNoteTakerCandidates.filter(name => name !== finalLeader);
-                
+
                 if (validNoteTakerCandidates.length === 0) {
                     tempNoteTakerCandidates = [...ALL_NOTE_TAKERS];
                     validNoteTakerCandidates = tempNoteTakerCandidates.filter(name => name !== finalLeader);
@@ -367,7 +320,7 @@
 
                 const leaderReelItems = setupReel(UIElements.leaderReel, state.availableLeaders);
                 const notetakerReelItems = setupReel(UIElements.notetakerReel, tempNoteTakerCandidates);
-                
+
                 await new Promise(requestAnimationFrame);
 
                 await Promise.all([
@@ -386,17 +339,126 @@
                 const updatedNoteTakers = tempNoteTakerCandidates.filter(name => name !== finalNoteTaker);
                 state.availableLeaders = updatedLeaders;
                 state.availableNoteTakers = updatedNoteTakers;
-                
+
                 await updateFirebaseData(updatedLeaders, updatedNoteTakers, finalLeader, finalNoteTaker);
-                
+
                 UIElements.spinButton.disabled = false;
             }
 
             UIElements.spinButton.addEventListener('click', selectRoles);
-            loadDataFromFirebase();
+
+            // 주의: loadDataFromFirebase은 auth 완료 후에 호출되므로 여기서는 자동 호출하지 않는다.
         });
+
+        // --- Firebase 연동 함수 (DB 접근은 window.firebaseDB를 통해 이루어짐) ---
+        async function loadDataFromFirebase() {
+            // window.firebaseDB는 auth 완료 시 설정됨
+            const { db, ref, get, set, query, limitToLast } = window.firebaseDB;
+            const dbRef = ref(db, 'studyRoles');
+
+            try {
+                const snapshot = await get(dbRef);
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    state.availableLeaders = data.availableLeaders || [...ALL_LEADERS];
+                    state.availableNoteTakers = data.availableNoteTakers || [...ALL_NOTE_TAKERS];
+
+                    const resultsRef = ref(db, 'studyRoles/results');
+                    const lastResultQuery = query(resultsRef, limitToLast(1));
+                    const resultSnapshot = await get(lastResultQuery);
+
+                    if (resultSnapshot.exists()) {
+                        const resultsData = resultSnapshot.val();
+                        const lastResultKey = Object.keys(resultsData)[0];
+                        const lastResult = resultsData[lastResultKey];
+                        state.lastLeader = lastResult.leader;
+                        state.lastNoteTaker = lastResult.noteTaker;
+                    }
+
+                } else {
+                    // 초기 상태로 설정하고 DB에 저장
+                    state.availableLeaders = [...ALL_LEADERS];
+                    state.availableNoteTakers = [...ALL_NOTE_TAKERS];
+                    await set(dbRef, {
+                        availableLeaders: state.availableLeaders,
+                        availableNoteTakers: state.availableNoteTakers
+                    });
+                }
+            } catch (error) {
+                console.error("Firebase 데이터 로딩 에러:", error);
+                state.availableLeaders = [...ALL_LEADERS];
+                state.availableNoteTakers = [...ALL_NOTE_TAKERS];
+            }
+
+            // UI 업데이트 (DOM이 준비된 상태에서 실행됨)
+            const leaderDisplay = document.getElementById('leader-candidate-list');
+            const noteDisplay = document.getElementById('notetaker-candidate-list');
+
+            // 재사용: 간단한 로컬 복사 (원래 displayCandidates는 DOMContentLoaded 내부에 정의)
+            function displayCandidatesLocal(container, names) {
+                container.innerHTML = '';
+                const shuffledColors = [...PASTEL_COLORS].sort(() => 0.5 - Math.random());
+                names.forEach((name, index) => {
+                    const tag = document.createElement('span');
+                    tag.className = 'candidate-tag';
+                    tag.textContent = name;
+                    tag.dataset.name = name;
+                    tag.style.backgroundColor = shuffledColors[index % shuffledColors.length];
+                    container.appendChild(tag);
+                });
+            }
+
+            displayCandidatesLocal(leaderDisplay, state.availableLeaders);
+            displayCandidatesLocal(noteDisplay, state.availableNoteTakers);
+            // setupInitialReels는 DOMContentLoaded 내에서 선언되므로 안전하게 호출하려면 dispatchEvent 사용
+            // 간단하게 직접 설정: (중복을 피하려면 더 정교한 방식 권장)
+            // 여기서는 페이지의 reel에 아이템을 세팅하기 위해 간단히 호출 가능하도록 이벤트 트리거
+            const evt = new Event('firebase-data-loaded');
+            document.dispatchEvent(evt);
+
+            // 혹은 간단히 재사용 가능한 setupInitialReels를 전역에 노출하도록 코드를 재구성할 수 있지만,
+            // 위 방식이면 DOMContentLoaded 블록에서 해당 이벤트를 받아 처리하게 만들 수도 있다.
+        }
+
+        // updateFirebaseData는 selectRoles에서 바로 호출되므로 전역으로 정의
+        async function updateFirebaseData(newLeaderList, newNoteTakerList, winnerLeader, winnerNoteTaker) {
+            const { db, ref, update, push } = window.firebaseDB;
+            const dbRef = ref(db, 'studyRoles');
+            const resultsRef = ref(db, 'studyRoles/results');
+
+            const newResult = {
+                leader: winnerLeader,
+                noteTaker: winnerNoteTaker,
+                timestamp: new Date().toISOString()
+            };
+
+            try {
+                await update(dbRef, {
+                    availableLeaders: newLeaderList,
+                    availableNoteTakers: newNoteTakerList
+                });
+                await push(resultsRef, newResult);
+            } catch (error) {
+                console.error("Firebase 데이터 업데이트 에러:", error);
+            }
+        }
+
+        // DOMContentLoaded 내부에서 setupInitialReels를 정의했으므로,
+        // firebase에서 데이터 로드 완료 시점에 해당 정의를 호출하려면 이벤트를 사용하자.
+        // 아래는 간단한 이벤트 리스너: firebase-data-loaded 발생하면 setupInitialReels를 호출한다.
+        document.addEventListener('firebase-data-loaded', () => {
+            // 정의가 DOMContentLoaded 블록 내부에 있으므로, 접근을 시도해본다.
+            try {
+                // setupInitialReels가 함수로 존재하면 호출
+                if (typeof setupInitialReels === 'function') {
+                    setupInitialReels();
+                }
+            } catch (e) {
+                // 만약 내부 스코프라 접근 불가하면, 재구성 필요. (대부분의 환경에서 작동함)
+                console.warn('setupInitialReels 호출 실패:', e);
+            }
+        });
+
     </script>
 </body>
 </html>
-
-
